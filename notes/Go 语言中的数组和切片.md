@@ -13,11 +13,11 @@ numbers1 := [...]int{1, 2, 3, 4, 5, 6}
 maxIndex1 := len(numbers1) - 1
 // range 表达式的求值结果会被复制，因此被迭代的对象是 range 表达式结果值的副本而不是原值
 for i, e := range numbers1 {
-	if i == maxIndex1 {
-		numbers1[0] += e
-	} else {
-		numbers1[i+1] += e
-	}
+    if i == maxIndex1 {
+	numbers1[0] += e
+    } else {
+	numbers1[i+1] += e
+    }
 }
 fmt.Println(numbers1) // [7 3 5 7 9 11]
 
@@ -25,13 +25,13 @@ fmt.Println(numbers1) // [7 3 5 7 9 11]
 numbers2 := []int{1, 2, 3, 4, 5, 6}
 maxIndex2 := len(numbers2) - 1
 for i, e := range numbers2 {
-	if i == maxIndex2 {
-		numbers2[0] += e
-	} else {
-		numbers2[i+1] += e
-	}
+    if i == maxIndex2 {
+	numbers2[0] += e
+    } else {
+	numbers2[i+1] += e
+    }
 }
-	fmt.Println(numbers2) // [22 3 6 10 15 21]
+fmt.Println(numbers2) // [22 3 6 10 15 21]
 ```
 
 我们可以通过内建函数 len() 得到数组或切片的长度，通过内建函数 cap() 可以得到它们的容量，需要注意的是，数组的容量和长度永远是相等且不可变的。
@@ -45,35 +45,35 @@ package main
 import "fmt"
 
 func main() {
-	// 示例1
-	s1 := make([]int, 0)
-	fmt.Printf("The capacity of s1: %d\n", cap(s1))  // 1，1
-	for i := 1; i <= 5; i++ {
-		s1 = append(s1, i)
-		fmt.Printf("s1(%d): len: %d, cap: %d\n", i, len(s1), cap(s1))
-	}
-	fmt.Println()
+    // 示例1
+    s1 := make([]int, 0)
+    fmt.Printf("The capacity of s1: %d\n", cap(s1))  // 1，1
+    for i := 1; i <= 5; i++ {
+	s1 = append(s1, i)
+	    fmt.Printf("s1(%d): len: %d, cap: %d\n", i, len(s1), cap(s1))
+    }
+    fmt.Println()
 
-	// 示例2
-	s2 := make([]int, 1024)
-	fmt.Printf("The capacity of s2: %d\n", cap(s2))  // 1024
-	s2e1 := append(s2, make([]int, 200)...)
-	fmt.Printf("s7e1: len: %d, cap: %d\n", len(s2e1), cap(s2e1))  // 1224（1024+200），1280（1024*1.25）
-	s2e2 := append(s2, make([]int, 400)...)
-	fmt.Printf("s2e2: len: %d, cap: %d\n", len(s2e2), cap(s2e2))  // 1424，1696
-	s2e3 := append(s2, make([]int, 600)...)
-	fmt.Printf("s2e3: len: %d, cap: %d\n", len(s2e3), cap(s2e3))  // 1624,2048
-	fmt.Println()
+    // 示例2
+    s2 := make([]int, 1024)
+    fmt.Printf("The capacity of s2: %d\n", cap(s2))  // 1024
+    s2e1 := append(s2, make([]int, 200)...)
+    fmt.Printf("s7e1: len: %d, cap: %d\n", len(s2e1), cap(s2e1))  // 1224（1024+200），1280（1024*1.25）
+    s2e2 := append(s2, make([]int, 400)...)
+    fmt.Printf("s2e2: len: %d, cap: %d\n", len(s2e2), cap(s2e2))  // 1424，1696
+    s2e3 := append(s2, make([]int, 600)...)
+    fmt.Printf("s2e3: len: %d, cap: %d\n", len(s2e3), cap(s2e3))  // 1624,2048
+    fmt.Println()
 
-	// 示例3
-	s3 := make([]int, 10)
-	fmt.Printf("The capacity of s3: %d\n", cap(s3))  // 10
-	s3a := append(s3, make([]int, 11)...)
-	fmt.Printf("s3a: len: %d, cap: %d\n", len(s3a), cap(s3a))  // 21,22
-	s3b := append(s3a, make([]int, 23)...)
-	fmt.Printf("s3b: len: %d, cap: %d\n", len(s3b), cap(s3b))  // 44,44
-	s3c := append(s3b, make([]int, 45)...)
-	fmt.Printf("s3c: len: %d, cap: %d\n", len(s3c), cap(s3c))  // 89,96
+    // 示例3
+    s3 := make([]int, 10)
+    fmt.Printf("The capacity of s3: %d\n", cap(s3))  // 10
+    s3a := append(s3, make([]int, 11)...)
+    fmt.Printf("s3a: len: %d, cap: %d\n", len(s3a), cap(s3a))  // 21,22
+    s3b := append(s3a, make([]int, 23)...)
+    fmt.Printf("s3b: len: %d, cap: %d\n", len(s3b), cap(s3b))  // 44,44
+    s3c := append(s3b, make([]int, 45)...)
+    fmt.Printf("s3c: len: %d, cap: %d\n", len(s3c), cap(s3c))  // 89,96
 }
 ```
 
