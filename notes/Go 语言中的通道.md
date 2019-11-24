@@ -1,8 +1,6 @@
 ﻿## Go 语言中的通道
 
-[demo]()
-
----
+[demo](https://github.com/lidonggg/alise-go/tree/master/channel)
 
 通道（channel）是 Go 语言中最具有特色的数据类型，我们可以利用通道在多个 goroutine 之间传递数据。
 
