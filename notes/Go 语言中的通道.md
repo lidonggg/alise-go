@@ -1,5 +1,9 @@
 ﻿## Go 语言中的通道
 
+[demo]()
+
+---
+
 通道（channel）是 Go 语言中最具有特色的数据类型，我们可以利用通道在多个 goroutine 之间传递数据。
 
 ### 啥是通道？
@@ -128,12 +132,6 @@ func mirroredQuery() string {
 }
 func request(hostname string) (response string) { /* ... */ }
 ```
-### 单向通道
-有时候我们可能会限制某个通道只能接收或者只能发送，这种情况我们称之为“单向通道”。定义单向通道我们只要在定义的时候带上 <- 即可：
-```go
-var send chan<- int     //只能发送，<- 操作符在 chan 后面
-var receive <-chan int  //只能接收，<- 操作符在 chan 前面
-```
 
 ### 通道的发送和接收操作的一些基本特性
 - 对于同一个通道，发送操作之间是互斥的，接收操作之间是互斥的，同时对于通道中的同一个元素值来说，发送操作和接收操作之间也是互斥的。有一个细节需要注意，那就是元素值从外界进入通道时会被复制，也就是说进入通道的并不是接收操作符右边的那个元素值，而是它的副本。
@@ -143,6 +141,152 @@ var receive <-chan int  //只能接收，<- 操作符在 chan 前面
 - 发送操作在完全完成之前会被阻塞，接收操作也是如此。
 
 以上三个特性都是为了保证通道的并发安全而存在的。
+
+### 单向通道
+有时候我们可能会限制某个通道只能接收或者只能发送，这种情况我们称之为“单向通道”。定义单向通道我们只要在定义的时候带上 <- 即可：
+```go
+ch := make(chan int, 1)
+var send chan<- int = ch            //只能发送，<- 操作符在 chan 后面
+var receive <-chan int = ch         //只能接收，<- 操作符在 chan 前面
+```
+与发送和接收操作相对应，单向通道里的发送和接收都是站在操作通道的角度上说的。
+
+其实我们可以发现，单向通道是没有用的，通道就是为了传递数据而存在的，一个只有一端能用的通道就失去了意义，那么为什么会有单向通道的存在？
+
+#### **单向通道的作用**
+**简单来说，单向通道最主要的用途就是约束其他代码的行为。**这需要从两方面来讲，但都跟函数声明有关。来看下面的一段代码：
+```go
+func SendInt(ch chan<- int) {
+    ch <- rand.Intn(1000)
+}
+```
+这里的 SendInt 函数只接收一个 chan<- int 类型的参数，在这个函数的代码中只能向参数 ch 发送元素值，而不能从它那里接收元素值，这就起到了约束函数行为的作用。然而在这里可能意义不是很大，因为我们自己写的函数自己就能确定操作通道的方式，在实际场景中，这种约束一般会出现在接口类型声明中的某个方法定义上。请看下面的接口类型声明：
+```go
+type Notifier interface {
+    SendInt(ch chan<- int)
+}
+```
+在这里，接口中的 SendInt 方法只会接收一个发送通道作为参数，所以在该接口的所有实现类型中的 SendInt 方法都会受到限制，这种约束在我们编写模板代码或者可扩展的程序库的时候特别有用。
+
+在调用 SendInt 函数的时候，我们只需要把一个元素类型匹配的双向通道传给它就行了，Go 语言会自动地把双向通道改成所需的单向通道：
+```go
+ch := make(chan int, 3)
+SendInt(ch)
+```
+
+当然除了参数，单向通道还可以在函数声明的结果列表中被使用，如下述代码所示：
+```go
+func getIntChan() <-chan int {
+	num := 5
+	ch := make(chan int, num)
+	for i := 0; i < num; i++ {
+		ch <- i
+	}
+	close(ch)
+	return ch
+}
+```
+上述代码意味着得到该通道的程序，只能从通道中接收元素值。
+
+在 Go 语言中，我们还可以声明函数类型，如果我们在函数类型中使用了双向通道，那么就相当于在约束所有实现了这个函数类型的函数，如下述代码所示：
+```go
+intChan := getIntChan()
+for elem := range intChan {
+	fmt.Printf("The element in intChan: %v\n", elem)
+}
+```
+这条 for 语句会不断地从 intChan 中取出元素值，即使 intChan 被关闭，它也会在取出所有剩余元素值之后再结束。当 intChan 中没有元素的时候，for 循环会被阻塞在 for 关键字那行。直到有新的元素值可取；如果 intChan 的值为 nil，那么它同样会被永远阻塞在有 for 关键字的那一行。
+
+### 管道
+我们在操作 bash（shell）的时候有个管道操作符 “|”，它的意思是把上一个操作的输出当成下一个操作的输入，然后做一连串的操作。利用 Go 语言中的通道，我们也可以达到类似的效果，代码如下所示：
+```go
+ch1 := make(chan int)
+ch2 := make(chan int)
+go func() {
+	ch1 <- 100
+}()
+
+go func() {
+	v := <-ch1
+	ch2 <- v
+}()
+
+fmt.Println(<-ch2)
+```
+
+### select 语句与通道的联用
+Go 语言中的 select 语句是专门为了操作通道而存在的，也就是说 select 语句只能与通道联用。先看下面的一段代码：
+```go
+func doSelect() {
+	// 准备好几个通道
+	intChannels := [3]chan int{
+		make(chan int, 1),
+		make(chan int, 1),
+		make(chan int, 1),
+	}
+	// 随机选择一个通道，并向它发送元素值
+	index := rand.Intn(3)
+	fmt.Printf("The index: %d\n", index)
+	intChannels[index] <- index
+
+	// 哪一个通道中有可取的元素值，哪个对应的分支就会被执行
+	select {
+	case <-intChannels[0]:
+		fmt.Println("first")
+	case <-intChannels[1]:
+		fmt.Println("second")
+	case elem := <-intChannels[2]:
+		fmt.Printf("The third candidate case is selected, the element is %d.\n", elem)
+	default:
+		fmt.Println("No candidate case is selected!")
+	}
+}
+```
+从上面的代码可以发现，select 语法的使用很类似于 switch，同样包含多个分支。由于 select 是专门为通道设计的，所以它的 case 子句只能包含操作通道类型的表达式。select 在使用过程中有如下一些约束：
+
+- 代码执行到 select 时，case 语句会按照源代码的顺序被评估，且只评估一次；
+- 除 default 外，如果只有一个 case 通过评估，那么就执行这个 case 里的语句；
+- 除 default 外，如果有多个 case 通过评估，那么通过随机的方式去选取一个执行；
+- 如果除 default 外的所有 case 都没有通过评估，那么执行 default 中的语句；
+- 如果没有 default 语句，那么代码块会被阻塞直到有一个 case 通过评估，否则一直阻塞下去；
+- 一条 select 语句中，default 分支最多只能有一条；
+- select 语句的每次执行，包括 case 表达式求值和分支选择，都是独立的。不过它的执行是否是并发安全的，就要看 case 子句中的代码是否是并发安全的。
+
+如果想要连续或者定时地操作其中的通道的那，那么就需要把 select 语句放入到一个 for 循环中，如下代码所示：
+```go
+func doSelectWithCycle() {
+	intChan := make(chan int, 1)
+	// 一秒后关闭通道。
+	time.AfterFunc(time.Second, func() {
+		close(intChan)
+	})
+	select {
+	case _, ok := <-intChan:
+		if !ok {
+			fmt.Println("The candidate case is closed.")
+			break
+		}
+		fmt.Println("The candidate case is selected.")
+	}
+}
+```
+
+### 管道
+我们在操作 bash（shell）的时候有个管道操作符 “|”，它的意思是把上一个操作的输出当成下一个操作的输入，然后做一连串的操作。利用 Go 语言中的通道，我们也可以达到类似的效果，代码如下所示：
+```go
+ch1 := make(chan int)
+ch2 := make(chan int)
+go func() {
+	ch1 <- 100
+}()
+
+go func() {
+	v := <-ch1
+	ch2 <- v
+}()
+
+fmt.Println(<-ch2)
+```
 
 ### 获取通道的容量和长度
 ```go
